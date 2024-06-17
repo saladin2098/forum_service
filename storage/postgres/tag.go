@@ -95,9 +95,10 @@ func (s *TagStorage) GetPopularTags(*pb.Void) (*pb.TagList, error) {
     defer rows.Close()
 
     tags := &pb.TagList{}
+    var count int
     for rows.Next() {
         tag := &pb.Tag{}
-        err := rows.Scan(&tag.TagId, &tag.Name)
+        err := rows.Scan(&tag.TagId, &tag.Name,&count)
         if err != nil {
             return nil, err
     }

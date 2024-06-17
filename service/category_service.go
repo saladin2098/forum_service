@@ -27,7 +27,7 @@ func (s *CategoryService) GetCategory(ctx context.Context, name *pb.ByName) (*pb
     return s.stg.Category().GetCategory(name)
 }
 
-func (s *CategoryService) GetCategories(ctx context.Context, void *pb.Void) (*pb.Categories, error) {
+func (s *CategoryService) ListCategories(ctx context.Context, void *pb.Void) (*pb.Categories, error) {
     return s.stg.Category().ListCategories(void)
 }
 

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"log"
 
 	pb "github.com/saladin2098/forum_service/genproto"
 )
@@ -28,6 +29,7 @@ func (s *CategoryStorage) GetCategory(name *pb.ByName) (*pb.Category, error) {
 			name 
 			from categories 
 			where name = $1 and deleted_at = 0`
+    log.Println(name)        
     row := s.db.QueryRow(query, name.Name)
     cat := &pb.Category{}
     err := row.Scan(&cat.CategoryId, &cat.Name)

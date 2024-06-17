@@ -90,42 +90,47 @@ func (s *CommentStorage) DeleteComment(commentId *pb.ById) (*pb.Void, error) {
     return &pb.Void{}, nil
 }
 func (s *CommentStorage) GetComments(filter *pb.CommentFilter) (*pb.Comments, error) {
-	query := `select 
-            comment_id,
-            post_id,
-            user_id,
-            body
-            from comments 
-            where deleted_at = 0`
-	var args []interface{}		
-    if filter.PostId!= "" && filter.PostId!= "string" {
-        query += ` and post_id = $` + strconv.Itoa(len(query)+1)
+	query := `SELECT 
+                comment_id,
+                post_id,
+                user_id,
+                body
+              FROM comments 
+              WHERE deleted_at = 0`
+	var args []interface{}
+	
+	if filter.PostId != "" && filter.PostId != "string" {
+		query += ` AND post_id = $` + strconv.Itoa(len(args)+1)
 		args = append(args, filter.PostId)
-    }
-    if filter.UserId!= "" && filter.UserId!= "string" {
-        query += ` and user_id = $` + strconv.Itoa(len(query)+1)
+	}
+	if filter.UserId != "" && filter.UserId != "string" {
+		query += ` AND user_id = $` + strconv.Itoa(len(args)+1)
 		args = append(args, filter.UserId)
-    }
-    if filter.Body!= "" && filter.Body!= "string" {
-        query += ` and body = $` + strconv.Itoa(len(query)+1)
+	}
+	if filter.Body != "" && filter.Body != "string" {
+		query += ` AND body = $` + strconv.Itoa(len(args)+1)
 		args = append(args, filter.Body)
-    }
-    rows, err := s.db.Query(query, args...)
-	if err!= nil {
-        return nil, err
-    }
+	}
+	
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
+	
 	comments := &pb.Comments{}
 	for rows.Next() {
 		comment := &pb.Comment{}
-        err := rows.Scan(&comment.CommentId,
-            &comment.PostId,
-            &comment.UserId,
-            &comment.Body)
-        if err!= nil {
-            return nil, err
-        }
-        comments.Comments = append(comments.Comments, comment)
-    }
-    return comments, nil
+		err := rows.Scan(&comment.CommentId, &comment.PostId, &comment.UserId, &comment.Body)
+		if err != nil {
+			return nil, err
+		}
+		comments.Comments = append(comments.Comments, comment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	
+	return comments, nil
 }

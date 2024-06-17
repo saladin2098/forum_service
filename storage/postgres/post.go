@@ -105,50 +105,42 @@ func (s *PostStorage) GetPosts(filter *pb.PostFilter) (*pb.Posts, error) {
 	}
 	return posts, nil
 }
-func (s *PostStorage) UpdatePost(post *pb.Post) (*pb.Post,error) {
-	/////////waning---------------------------/////--------------------------------/////
+func (s *PostStorage) UpdatePost(post *pb.Post) (*pb.Post, error) {
 	query := `update posts set `
 	var conditions []string
 	var args []interface{}
-	if post.UserId != "" && post.UserId != "string"{
+	if post.UserId != "" && post.UserId != "string" {
 		conditions = append(conditions, "user_id = $"+strconv.Itoa(len(args)+1))
-        args = append(args, post.UserId)
+		args = append(args, post.UserId)
 	}
-	if post.Title!= "" && post.Title != "string" {
-        conditions = append(conditions, "title = $"+strconv.Itoa(len(args)+1))
-        args = append(args, post.Title)
-    }
-	if post.Body!= "" && post.Body != "string"{
-        conditions = append(conditions, "body = $"+strconv.Itoa(len(args)+1))
-        args = append(args, post.Body)
-    }
-	if post.CategoryId!= "" && post.CategoryId != "string"{
-        conditions = append(conditions, "category_id = $"+strconv.Itoa(len(args)+1))
-        args = append(args, post.CategoryId)
-    }
+	if post.Title != "" && post.Title != "string" {
+		conditions = append(conditions, "title = $"+strconv.Itoa(len(args)+1))
+		args = append(args, post.Title)
+	}
+	if post.Body != "" && post.Body != "string" {
+		conditions = append(conditions, "body = $"+strconv.Itoa(len(args)+1))
+		args = append(args, post.Body)
+	}
+	if post.CategoryId != "" && post.CategoryId != "string" {
+		conditions = append(conditions, "category_id = $"+strconv.Itoa(len(args)+1))
+		args = append(args, post.CategoryId)
+	}
 	if len(conditions) > 0 {
-        query += strings.Join(conditions, ", ")
-    }
-	query += " where post_id = $"+strconv.Itoa(len(args)+1)+`deleted_at=0
-														returning post_id,
-														user_id,
-                                                        title,
-                                                        body,
-                                                        category_id`
+		query += strings.Join(conditions, ", ")
+	}
+	query += " where post_id = $"+strconv.Itoa(len(args)+1)+" and deleted_at=0 returning post_id, user_id, title, body, category_id"
 	args = append(args, post.PostId)
-	row,err := s.db.Query(query, args...)
-	if err!= nil {
-        return nil, err
-    }
+	row := s.db.QueryRow(query, args...)
 	var res pb.Post
-	err = row.Scan(res.PostId,res.UserId,res.Title,res.Body,res.CategoryId)
-	if err!= nil {
-        return nil, err
-    }
+	err := row.Scan(&res.PostId, &res.UserId, &res.Title, &res.Body, &res.CategoryId)
+	if err != nil {
+		return nil, err
+	}
 	return &res, nil
 }
+
 func (s *PostStorage) DeletePost(postId *pb.ById) (*pb.Void,error) {
-	query := `update posts set deleted_at = now() 
+	query := `update posts set deleted_at = EXTRACT(EPOCH FROM NOW())
 		where post_id = $1 and deleted_at = 0`
     _,err := s.db.Exec(query,postId.Id)
     if err!= nil {

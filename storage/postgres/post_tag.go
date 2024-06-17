@@ -69,32 +69,50 @@ func (p *PostTagStorage) GetPostTag(id *pb.ById) (*pb.PostTag, error) {
             where post_tag_id = $1 and deleted_at = 0`
     row := p.db.QueryRow(query, id.Id)
     res := &pb.PostTag{}
-    err := row.Scan(res.PostTagId, res.PostId, res.TagId)
+    err := row.Scan(&res.PostTagId, &res.PostId, &res.TagId)
     if err!= nil {
         return nil, err
     }
     return res, nil
 }
-func (p *PostTagStorage) GetPostTags(bp *pb.ByPost) (*pb.PostTags,error) {
-	query := `select 
-            post_tag_id, 
-            post_id, 
-            tag_id 
-            from posts_tags 
-            where post_id = $1 and deleted_at = 0`
-    rows, err := p.db.Query(query, bp.PostId)
-    if err!= nil {
-        return nil, err
-    }
-    defer rows.Close()
-    tags := &pb.PostTags{}
-    for rows.Next() {
-        tag := &pb.PostTag{}
-        err := rows.Scan(&tag.PostTagId, &tag.PostId, &tag.TagId)
-        if err!= nil {
-            return nil, err
-        }
-        tags.PostTags = append(tags.PostTags, tag)
-    }
-    return tags, nil
+func (p *PostTagStorage) GetPostTags(bp *pb.ByPost) (*pb.PostTags, error) {
+	query := `SELECT 
+                post_tag_id, 
+                post_id, 
+                tag_id 
+              FROM posts_tags 
+              WHERE deleted_at = 0`
+	var args []interface{}
+	conditions := []string{} 
+
+	if bp.PostId != "" && bp.PostId != "string" {
+		conditions = append(conditions, "post_id = $"+strconv.Itoa(len(args)+1))
+		args = append(args, bp.PostId)
+	}
+
+	if len(conditions) > 0 {
+		query += " AND " + strings.Join(conditions, " AND ")
+	}
+
+	rows, err := p.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tags := &pb.PostTags{}
+	for rows.Next() {
+		tag := &pb.PostTag{}
+		err := rows.Scan(&tag.PostTagId, &tag.PostId, &tag.TagId)
+		if err != nil {
+			return nil, err
+		}
+		tags.PostTags = append(tags.PostTags, tag)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tags, nil
 }
