@@ -139,15 +139,38 @@ func (s *PostStorage) UpdatePost(post *pb.Post) (*pb.Post, error) {
 	return &res, nil
 }
 
-func (s *PostStorage) DeletePost(postId *pb.ById) (*pb.Void,error) {
+func (s *PostStorage) DeletePost(postId *pb.ById) (*pb.Void, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
 	query := `update posts set deleted_at = EXTRACT(EPOCH FROM NOW())
 		where post_id = $1 and deleted_at = 0`
-    _,err := s.db.Exec(query,postId.Id)
-    if err!= nil {
-        return nil, err
-    }
-    return &pb.Void{}, nil
+	_, err = tx.Exec(query, postId.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	query_com := `update comments set deleted_at = EXTRACT(EPOCH FROM NOW()) 
+				where post_id = $1 and deleted_at = 0`
+	_, err = tx.Exec(query_com, postId.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &pb.Void{}, nil
 }
+
 func (s *PostStorage) GetPostsByTag(tag *pb.TagFilter) (*pb.Posts, error) {
 	query := `SELECT 
 				p.post_id,
