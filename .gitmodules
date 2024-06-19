@@ -1,5 +1,1 @@
 
-[submodule "forum_protos"]
-	path = forum_protos
-	url = git@github.com:saladin2098/forum_protos.git
-
